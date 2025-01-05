@@ -7,7 +7,7 @@ import pandas as pd
 from pptx import Presentation
 from langchain_community.document_loaders import PyPDFLoader
 import logging
-
+###lalitmach22@gmail.com
 # Configure logging for structured logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -31,29 +31,18 @@ def clean_text(text):
     text = text.strip()  # Remove leading/trailing spaces
     return text
 
-def remove_null_bytes(text):
-    """Remove null bytes from the text."""
-    return text.replace('\x00', '')  # Removes null characters
-
-def ensure_utf8_encoding(text):
-    """Ensure the text is valid UTF-8 encoding."""
-    try:
-        return text.encode('utf-8').decode('utf-8')
-    except UnicodeDecodeError:
-        logger.error(f"Text contains invalid UTF-8 characters: {text[:30]}")
-        return ""
-
 def load_pdf(file_path):
     """Load PDF and return text from each page."""
     try:
         loader = PyPDFLoader(file_path)
         all_texts = []
         pages = loader.load_and_split()
+        
         for page in pages:
             all_texts.append(page.page_content)
         return all_texts
     except Exception as e:
-        logger.error(f"Error loading PDF {file_path}: {e}")
+        print(f"Error loading PDF {file_path}: {e}")
         return []
 
 def load_word(file_path, chunk_size=10):
@@ -67,26 +56,19 @@ def load_word(file_path, chunk_size=10):
             all_texts.append(chunk)
         return all_texts
     except Exception as e:
-        logger.error(f"Error loading Word document {file_path}: {e}")
+        print(f"Error loading Word document {file_path}: {e}")
         return []
 
 def load_text(file_path, chunk_size=1024):
-    """Load plain text file and return text in chunks, handle different encodings."""
+    """Load plain text file and return text in chunks."""
     try:
         with open(file_path, "r", encoding="utf-8") as file:
             all_texts = []
             while chunk := file.read(chunk_size):
                 all_texts.append(chunk)
         return all_texts
-    except UnicodeDecodeError:
-        logger.warning(f"UTF-8 decoding failed for {file_path}, trying latin-1")
-        with open(file_path, "r", encoding="latin-1") as file:
-            all_texts = []
-            while chunk := file.read(chunk_size):
-                all_texts.append(chunk)
-        return all_texts
     except Exception as e:
-        logger.error(f"Error loading text file {file_path}: {e}")
+        print(f"Error loading text file {file_path}: {e}")
         return []
 
 def load_excel(file_path, chunk_size=1000):
@@ -98,7 +80,7 @@ def load_excel(file_path, chunk_size=1000):
             all_texts.append(chunk.to_string(index=False))
         return all_texts
     except Exception as e:
-        logger.error(f"Error loading Excel file {file_path}: {e}")
+        print(f"Error loading Excel file {file_path}: {e}")
         return []
 
 def load_csv(file_path, chunk_size=1000):
@@ -110,7 +92,7 @@ def load_csv(file_path, chunk_size=1000):
             all_texts.append(chunk.to_string(index=False))
         return all_texts
     except Exception as e:
-        logger.error(f"Error loading CSV file {file_path}: {e}")
+        print(f"Error loading CSV file {file_path}: {e}")
         return []
 
 def load_pptx(file_path):
@@ -126,7 +108,7 @@ def load_pptx(file_path):
             all_texts.append("\n".join(slide_text))
         return all_texts
     except Exception as e:
-        logger.error(f"Error loading PowerPoint file {file_path}: {e}")
+        print(f"Error loading PowerPoint file {file_path}: {e}")
         return []
 
 def load_hidden_documents(directory="hidden_docs"):
@@ -138,34 +120,23 @@ def load_hidden_documents(directory="hidden_docs"):
 
         # Handle different file types based on extension
         try:
-            if filename.endswith((".pdf", ".PDF")):
+            if filename.endswith(".pdf"):
                 all_texts.extend(load_pdf(file_path))
-            elif filename.endswith((".docx", ".DOCX")):
+            elif filename.endswith(".docx"):
                 all_texts.extend(load_word(file_path))
-            elif filename.endswith((".txt", ".TXT")):
+            elif filename.endswith(".txt"):
                 all_texts.extend(load_text(file_path))
             elif filename.endswith(('.xlsx', '.xls')):
                 all_texts.extend(load_excel(file_path))
-            elif filename.endswith((".csv", ".CSV")):
+            elif filename.endswith(".csv"):
                 all_texts.extend(load_csv(file_path))
-            elif filename.endswith((".pptx", ".PPTX", ".ppt", ".PPT")):
+            elif filename.endswith(".pptx"):
                 all_texts.extend(load_pptx(file_path))
-            else:
-                logger.warning(f"Unsupported file type for file: {filename}")
         except Exception as e:
-            logger.error(f"Error processing file {filename}: {e}")
+            print(f"Error processing file {filename}: {e}")
 
     # Clean the collected texts
     cleaned_texts = [clean_text(text) for text in all_texts]
-
-    # Remove null bytes and ensure UTF-8 encoding
-    cleaned_texts = [remove_null_bytes(text) for text in cleaned_texts]
-    #cleaned_texts = [ensure_utf8_encoding(text) for text in cleaned_texts]
-
-    # Filter out non-printable characters at the text level, not the character level
-    cleaned_texts = [text for text in cleaned_texts if text.isprintable()]
-
-    logger.info(f"Loaded and cleaned {len(cleaned_texts)} text chunks from documents.")
     return cleaned_texts
 
 def store_documents(supabase, documents):
